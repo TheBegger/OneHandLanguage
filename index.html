@@ -292,24 +292,41 @@ body.dark .wrow:active{background:#242426;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-const supabase = window.supabase.createClient(
-  "https://yiaugqyrqaneugnkigfp.supabase.co",
-  "sb_publishable_HsB3VDl9T4GbA0IKEeVgPw_PPw4CQra"
-);
-
+let supabaseClient = null;
 const BUCKET = "Videos";
+
+try{
+  if(window.supabase){
+    supabaseClient = window.supabase.createClient(
+      "https://yiaugqyrqaneugnkigfp.supabase.co",
+      "sb_publishable_HsB3VDl9T4GbA0IKEeVgPw_PPw4CQra"
+    );
+  }
+}catch(e){
+  console.warn("Supabase konnte nicht gestartet werden", e);
+}
+
+function cloudReady(){
+  return !!supabaseClient;
+}
 
 function cloudPath(id){
   return String(id) + ".webm";
 }
 
 function cloudUrl(id){
-  return supabase.storage.from(BUCKET).getPublicUrl(cloudPath(id)).data.publicUrl;
+  if(!cloudReady())return null;
+  return supabaseClient.storage.from(BUCKET).getPublicUrl(cloudPath(id)).data.publicUrl;
 }
 
 async function cloudExists(id){
+  const url=cloudUrl(id);
+  if(!url)return false;
   try{
-    const res = await fetch(cloudUrl(id), { method:"HEAD", cache:"no-store" });
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),2500);
+    const res=await fetch(url,{method:"HEAD",cache:"no-store",signal:controller.signal});
+    clearTimeout(timeout);
     return res.ok;
   }catch(e){
     return false;
@@ -665,9 +682,13 @@ async function delVid(){
   if(!confirm('Aufnahme löschen?'))return;
   await dbd(String(S.curWord.id));
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .remove([cloudPath(S.curWord.id)]);
+  let error=null;
+  if(cloudReady()){
+    const result = await supabaseClient.storage
+      .from(BUCKET)
+      .remove([cloudPath(S.curWord.id)]);
+    error=result.error;
+  }
 
   if(error)console.warn(error);
 
@@ -720,12 +741,18 @@ async function onStop(){
 
   await dbs(String(S.curWord.id),blob);
 
-  const { error } = await supabase.storage
-    .from(BUCKET)
-    .upload(path, blob, {
-      upsert:true,
-      contentType:mime
-    });
+  let error=null;
+  if(cloudReady()){
+    const result = await supabaseClient.storage
+      .from(BUCKET)
+      .upload(path, blob, {
+        upsert:true,
+        contentType:mime
+      });
+    error=result.error;
+  }else{
+    error=new Error('Supabase nicht verfügbar');
+  }
 
   stopCam(false);
   go('word',{word:S.curWord});
