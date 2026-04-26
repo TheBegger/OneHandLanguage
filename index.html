@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Zeichen">
+<title>Zeichen ✋</title>
+<style>
+:root {
+  --bg: #F4F3F0;
+  --card: #FFFFFF;
+  --text: #1A1918;
+  --text2: #7A7875;
+  --accent: #3D35C8;
+  --green: #059669;
+  --red: #DC2626;
+  --border: rgba(0,0,0,0.07);
+  --shadow: 0 1px 8px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(0,0,0,0.05);
+  --radius: 16px;
+  --safe-top: env(safe-area-inset-top, 44px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+  --tab-h: 56px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;width:100%;overflow:hidden;font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);}
+body.dark{
+  --bg:#111111;
+  --card:#1C1C1E;
+  --text:#F5F5F7;
+  --text2:#9B9B9F;
+  --border:rgba(255,255,255,0.10);
+  --shadow:0 1px 10px rgba(0,0,0,0.35),0 0 0 0.5px rgba(255,255,255,0.05);
+}
+body.dark .tabs{background:rgba(25,25,25,0.92);}
+body.dark .wrow:active{background:#242426;}
+#app{height:100%;width:100%;position:relative;overflow:hidden;}
+.view{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg);}
+.view.active{display:flex;}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--tab-h) + var(--safe-bot) + 24px);}
+.hdr{padding:12px 18px 10px;padding-top:calc(12px + var(--safe-top));background:var(--bg);position:relative;z-index:2;}
+.hdr-row{display:flex;align-items:center;gap:10px;}
+.hdr h1{font-size:22px;font-weight:700;letter-spacing:-0.4px;}
+.hdr p{font-size:13px;color:var(--text2);margin-top:2px;}
+.back{width:34px;height:34px;border-radius:50%;background:var(--card);border:none;font-size:17px;cursor:pointer;flex-shrink:0;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;color:var(--text);}
+.tabs{position:fixed;bottom:0;left:0;right:0;height:calc(var(--tab-h) + var(--safe-bot));background:rgba(248,248,248,0.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:0.5px solid var(--border);display:flex;align-items:flex-start;padding-top:6px;z-index:100;}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:4px 0;color:var(--text2);transition:color .15s;}
+.tab.on{color:var(--accent);}
+.tab-ico{font-size:20px;line-height:1;}
+.tab-lbl{font-size:9px;font-weight:600;letter-spacing:0.2px;}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px;}
+.cat-card{background:var(--card);border-radius:var(--radius);padding:14px 14px 18px;cursor:pointer;position:relative;overflow:hidden;box-shadow:var(--shadow);border:none;text-align:left;transition:transform .12s;width:100%;color:var(--text);}
+.cat-card:active{transform:scale(.97);}
+.cat-ico{font-size:26px;margin-bottom:6px;display:block;}
+.cat-nm{font-size:14px;font-weight:600;}
+.cat-ct{font-size:11px;color:var(--text2);margin-top:2px;}
+.cat-bar{position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--bg);}
+.cat-bar-fill{height:100%;background:var(--accent);transition:width .4s;}
+.wrow{display:flex;align-items:center;gap:10px;padding:13px 16px;background:var(--card);cursor:pointer;border-bottom:0.5px solid var(--border);transition:background .1s;}
+.wrow:last-child{border-bottom:none;}
+.wrow:active{background:#F8F8F6;}
+.wi{flex:1;min-width:0;}
+.wn{font-size:15px;font-weight:500;}
+.wh{font-size:12px;color:var(--text2);margin-top:1px;}
+.wbadge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.has-vid{background:#ECFDF5;}
+.no-vid{background:var(--bg);}
+.vid-box{margin:14px;border-radius:14px;overflow:hidden;background:#111;aspect-ratio:1;max-height:340px;position:relative;display:flex;align-items:center;justify-content:center;}
+.vid-box video{width:100%;height:100%;object-fit:cover;}
+.vid-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:rgba(255,255,255,.4);}
+.vid-empty span{font-size:40px;}
+.vid-empty p{font-size:13px;}
+.trim-panel{display:none;margin:0 14px 14px;background:var(--card);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
+.trim-row{display:flex;align-items:center;gap:10px;margin:10px 0;}
+.trim-row span{font-size:12px;color:var(--text2);width:42px;}
+.trim-row input{flex:1;}
+.trim-actions{display:flex;gap:8px;margin-top:12px;}
+.btn{border-radius:12px;border:none;padding:13px 18px;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:transform .12s;width:100%;}
+.btn:active{transform:scale(.97);}
+.btn-p{background:var(--accent);color:#fff;}
+.btn-s{background:var(--card);color:var(--text);box-shadow:var(--shadow);}
+.btn-d{background:#FEE2E2;color:var(--red);}
+#view-record{background:#000;}
+#cam-prev{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
+.rec-top{position:absolute;top:0;left:0;right:0;padding:16px 18px;padding-top:calc(16px + var(--safe-top));display:flex;justify-content:flex-end;background:linear-gradient(rgba(0,0,0,.5),transparent);}
+.rec-bot{position:absolute;bottom:0;left:0;right:0;padding:20px 20px calc(20px + var(--safe-bot));display:flex;flex-direction:column;align-items:center;gap:14px;background:linear-gradient(transparent,rgba(0,0,0,.75));}
+.rec-lbl{color:#fff;font-size:19px;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.6);}
+.rec-timer{color:#fff;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;}
+.rec-timer.vis{opacity:1;}
+.rec-row{display:flex;align-items:center;gap:28px;}
+.rec-btn{width:68px;height:68px;border-radius:50%;background:#fff;border:none;cursor:pointer;position:relative;flex-shrink:0;}
+.rec-btn::after{content:'';position:absolute;inset:5px;border-radius:50%;background:var(--red);transition:border-radius .25s,inset .25s;}
+.rec-btn.ing::after{inset:15px;border-radius:5px;}
+.ico-btn{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.cancel-btn{background:rgba(0,0,0,.4);color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:500;}
+.prog-wrap{margin:12px 16px 0;background:var(--card);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.prog-bar{flex:1;background:var(--bg);border-radius:4px;height:5px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--green);transition:width .5s;border-radius:4px;}
+.prog-txt{font-size:12px;color:var(--text2);white-space:nowrap;}
+.list-card{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;cursor:pointer;}
+.s-sec{padding:14px 16px;}
+.s-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:7px;padding:0 4px;}
+.fg{margin-bottom:14px;}
+.fl{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block;}
+.fi{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);font-size:16px;color:var(--text);outline:none;}
+.fi:focus{border-color:var(--accent);}
+.fsel{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);font-size:16px;color:var(--text);outline:none;-webkit-appearance:none;}
+.empty{text-align:center;padding:48px 20px;color:var(--text2);}
+.empty-ico{font-size:36px;margin-bottom:10px;}
+.empty-t{font-size:15px;font-weight:500;color:var(--text);}
+.empty-s{font-size:13px;margin-top:4px;}
+#toast{position:fixed;bottom:calc(var(--tab-h) + var(--safe-bot) + 14px);left:50%;transform:translateX(-50%) translateY(14px);background:rgba(20,20,18,.88);color:#fff;border-radius:20px;padding:9px 18px;font-size:13px;font-weight:500;opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:999;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="view-home" class="view active">
+  <div class="hdr">
+    <h1>Zeichen ✋</h1>
+    <div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-txt" id="prog-txt">0 / 150</div>
+    </div>
+  </div>
+  <div class="scroll"><div class="cat-grid" id="cat-grid"></div></div>
+  <nav class="tabs">
+    <button class="tab on" onclick="go('home')"><span class="tab-ico">🏠</span><span class="tab-lbl">START</span></button>
+    <button class="tab" onclick="go('search')"><span class="tab-ico">🔍</span><span class="tab-lbl">SUCHE</span></button>
+    <button class="tab" onclick="go('lists')"><span class="tab-ico">📋</span><span class="tab-lbl">LISTEN</span></button>
+    <button class="tab" onclick="go('settings')"><span class="tab-ico">⚙️</span><span class="tab-lbl">EINST.</span></button>
+  </nav>
+</div>
+
+<div id="view-category" class="view">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="back" onclick="go('home')">←</button>
+      <div><h1 id="cat-h"></h1><p id="cat-p"></p></div>
+    </div>
+  </div>
+  <div class="scroll"><div id="word-list" style="margin:0 14px;"></div></div>
+</div>
+
+<div id="view-word" class="view">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="back" onclick="goBackWord()">←</button>
+      <div style="flex:1;min-width:0;"><h1 id="word-h" style="font-size:19px;"></h1><p id="word-sub"></p></div>
+      <button id="star-btn" onclick="toggleStar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text);">☆</button>
+    </div>
+  </div>
+  <div class="scroll" style="padding-bottom:130px;">
+    <div class="vid-box">
+      <video id="word-vid" controls loop playsinline webkit-playsinline style="display:none;"></video>
+      <div class="vid-empty" id="vid-empty"><span>📹</span><p>Noch keine Aufnahme</p></div>
+    </div>
+    <div class="trim-panel" id="trim-panel">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:6px;">Video trimmen</div>
+      <div class="trim-row"><span id="trim-s-lbl">0.0s</span><input id="trim-s" type="range" min="0" max="10" step="0.1" value="0" oninput="trimInputChanged()"></div>
+      <div class="trim-row"><span id="trim-e-lbl">10.0s</span><input id="trim-e" type="range" min="0" max="10" step="0.1" value="10" oninput="trimInputChanged()"></div>
+      <div class="trim-actions">
+        <button class="btn btn-s" onclick="previewTrim()">▶️ Test</button>
+        <button class="btn btn-p" onclick="saveTrim()">✅ Speichern</button>
+        <button class="btn btn-d" onclick="resetTrim()">Reset</button>
+      </div>
+    </div>
+    <div style="padding:0 14px 14px;">
+      <div style="background:var(--card);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:3px;">Bedeutung</div>
+        <div id="word-hint" style="font-size:15px;line-height:1.5;"></div>
+      </div>
+    </div>
+    <div id="word-btns" style="padding:0 14px;display:flex;flex-direction:column;gap:9px;"></div>
+  </div>
+</div>
+
+<div id="view-record" class="view">
+  <video id="cam-prev" autoplay muted playsinline webkit-playsinline></video>
+  <div class="rec-top"><button class="cancel-btn" onclick="stopCam(true)">Abbrechen</button></div>
+  <div class="rec-bot">
+    <div class="rec-lbl" id="rec-lbl"></div>
+    <div class="rec-timer" id="rec-timer">00:00</div>
+    <div class="rec-row">
+      <div style="width:40px;"></div>
+      <button class="rec-btn" id="rec-btn" onclick="toggleRec()"></button>
+      <button class="ico-btn" onclick="flipCam()">🔄</button>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);">Drücken zum Aufnehmen · Max. 10 Sek.</div>
+  </div>
+</div>
+
+<div id="view-search" class="view">
+  <div class="hdr">
+    <h1 style="margin-bottom:10px;">Suche</h1>
+    <input class="fi" id="search-in" placeholder="Wort suchen…" oninput="doSearch()" type="search">
+  </div>
+  <div class="scroll"><div id="search-res" style="padding:0 14px;"></div></div>
+  <nav class="tabs">
+    <button class="tab" onclick="go('home')"><span class="tab-ico">🏠</span><span class="tab-lbl">START</span></button>
+    <button class="tab on"><span class="tab-ico">🔍</span><span class="tab-lbl">SUCHE</span></button>
+    <button class="tab" onclick="go('lists')"><span class="tab-ico">📋</span><span class="tab-lbl">LISTEN</span></button>
+    <button class="tab" onclick="go('settings')"><span class="tab-ico">⚙️</span><span class="tab-lbl">EINST.</span></button>
+  </nav>
+</div>
+
+<div id="view-lists" class="view">
+  <div class="hdr">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h1>Listen</h1>
+      <button class="btn btn-s" style="width:auto;padding:8px 14px;font-size:13px;" onclick="createList()">+ Neu</button>
+    </div>
+  </div>
+  <div class="scroll"><div id="lists-box" style="padding:0 14px;display:flex;flex-direction:column;gap:10px;"></div></div>
+  <nav class="tabs">
+    <button class="tab" onclick="go('home')"><span class="tab-ico">🏠</span><span class="tab-lbl">START</span></button>
+    <button class="tab" onclick="go('search')"><span class="tab-ico">🔍</span><span class="tab-lbl">SUCHE</span></button>
+    <button class="tab on"><span class="tab-ico">📋</span><span class="tab-lbl">LISTEN</span></button>
+    <button class="tab" onclick="go('settings')"><span class="tab-ico">⚙️</span><span class="tab-lbl">EINST.</span></button>
+  </nav>
+</div>
+
+<div id="view-list-detail" class="view">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="back" onclick="go('lists')">←</button>
+      <div style="flex:1;"><h1 id="ld-h"></h1><p id="ld-p" style="font-size:12px;color:var(--text2);"></p></div>
+      <button onclick="delList()" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
+    </div>
+  </div>
+  <div class="scroll"><div id="ld-words" style="padding:0 14px;"></div></div>
+</div>
+
+<div id="view-add" class="view">
+  <div class="hdr">
+    <div class="hdr-row">
+      <button class="back" onclick="go('settings')">←</button>
+      <h1>Neues Zeichen</h1>
+    </div>
+  </div>
+  <div class="scroll" style="padding:16px;padding-bottom:40px;">
+    <div class="fg"><label class="fl">Wort / Ausdruck</label><input class="fi" id="add-w" placeholder="z.B. Hunger" type="text"></div>
+    <div class="fg"><label class="fl">Kurze Erklärung (optional)</label><input class="fi" id="add-h" placeholder="z.B. Ich habe Hunger" type="text"></div>
+    <div class="fg"><label class="fl">Kategorie</label><select class="fsel" id="add-c"></select></div>
+    <button class="btn btn-p" style="margin-top:6px;" onclick="saveNewWord()">✅ Hinzufügen</button>
+  </div>
+</div>
+
+<div id="view-settings" class="view">
+  <div class="hdr"><h1>Einstellungen</h1></div>
+  <div class="scroll" style="padding-bottom:120px;">
+    <div class="s-sec">
+      <div class="s-lbl">Darstellung</div>
+      <div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);">
+        <button class="btn btn-s" onclick="toggleDark()" id="dark-btn">🌙 Dark Mode</button>
+      </div>
+    </div>
+    <div class="s-sec">
+      <div class="s-lbl">Vokabular</div>
+      <div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);">
+        <button class="btn btn-s" onclick="go('add')">➕ Neues Zeichen hinzufügen</button>
+      </div>
+    </div>
+    <div class="s-sec">
+      <div class="s-lbl">Videos teilen</div>
+      <div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px;">
+        <p style="font-size:13px;color:var(--text2);line-height:1.5;">Exportiere alle Videos, eigenen Zeichen, Listen und Trim-Einstellungen.</p>
+        <button class="btn btn-p" onclick="exportVids()">📤 Daten exportieren</button>
+        <button class="btn btn-s" onclick="document.getElementById('imp-file').click()">📥 Daten importieren</button>
+        <input type="file" id="imp-file" accept=".zeichen,.json" style="display:none;" onchange="handleImport(event)">
+      </div>
+    </div>
+    <div class="s-sec">
+      <div class="s-lbl">Daten</div>
+      <div style="background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);">
+        <button class="btn btn-d" onclick="resetVids()">🗑️ Alle Videos löschen</button>
+      </div>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab" onclick="go('home')"><span class="tab-ico">🏠</span><span class="tab-lbl">START</span></button>
+    <button class="tab" onclick="go('search')"><span class="tab-ico">🔍</span><span class="tab-lbl">SUCHE</span></button>
+    <button class="tab" onclick="go('lists')"><span class="tab-ico">📋</span><span class="tab-lbl">LISTEN</span></button>
+    <button class="tab on"><span class="tab-ico">⚙️</span><span class="tab-lbl">EINST.</span></button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const CATS=[
+  {id:"social",name:"Soziales",emoji:"👋"},
+  {id:"gefuehle",name:"Gefühle",emoji:"😊"},
+  {id:"personen",name:"Personen",emoji:"👥"},
+  {id:"raum",name:"Raum & Ort",emoji:"📍"},
+  {id:"zeit",name:"Zeit",emoji:"⏰"},
+  {id:"alltag",name:"Alltag",emoji:"🏠"},
+  {id:"essen",name:"Essen & Trinken",emoji:"🍽️"},
+  {id:"grammatik",name:"Grammatik",emoji:"📝"},
+  {id:"fragen",name:"Fragen",emoji:"❓"},
+  {id:"bewegen",name:"Handeln",emoji:"✊"},
+];
+const BASE=[
+  {id:0,w:"Hallo / Tschüss",h:"Begrüßung & Abschied",c:"social"},
+  {id:1,w:"Danke",h:"Dankbarkeit zeigen",c:"social"},
+  {id:2,w:"Bitte",h:"Höfliche Bitte",c:"social"},
+  {id:3,w:"Entschuldigung",h:"Entschuldigung / Verzeihung",c:"social"},
+  {id:4,w:"Ja",h:"Zustimmung",c:"social"},
+  {id:5,w:"Nein",h:"Ablehnung",c:"social"},
+  {id:6,w:"Okay / passt",h:"Einverstanden",c:"social"},
+  {id:7,w:"Stop",h:"Warte, halt an",c:"social"},
+  {id:8,w:"Hilfe",h:"Ich brauche Hilfe",c:"social"},
+  {id:9,w:"Psst / still sein",h:"Leiser / ruhig",c:"social"},
+  {id:10,w:"Komm her",h:"Zu mir kommen",c:"social"},
+  {id:11,w:"Geh / gehen wir",h:"Aufbrechen",c:"social"},
+  {id:12,w:"Warte",h:"Moment bitte",c:"social"},
+  {id:13,w:"Nicht",h:"Verneinung",c:"social"},
+  {id:14,w:"Sehr / sehr gut",h:"Verstärkung",c:"social"},
+  {id:15,w:"Glücklich / gut",h:"Positive Stimmung",c:"gefuehle"},
+  {id:16,w:"Schlecht / nicht gut",h:"Negative Stimmung",c:"gefuehle"},
+  {id:17,w:"Langweilig",h:"Gelangweilt sein",c:"gefuehle"},
+  {id:18,w:"Nervös / unwohl",h:"Unbehagen",c:"gefuehle"},
+  {id:19,w:"Müde",h:"Erschöpft sein",c:"gefuehle"},
+  {id:20,w:"Hungrig",h:"Hunger haben",c:"gefuehle"},
+  {id:21,w:"Durstig",h:"Durst haben",c:"gefuehle"},
+  {id:22,w:"Verliebt / du bist toll",h:"Zuneigung",c:"gefuehle"},
+  {id:23,w:"Wütend",h:"Ärger / Frustration",c:"gefuehle"},
+  {id:24,w:"Aufgeregt",h:"Vorfreude",c:"gefuehle"},
+  {id:25,w:"Egal / mir egal",h:"Gleichgültigkeit",c:"gefuehle"},
+  {id:26,w:"Ich mag das",h:"Gefällt mir",c:"gefuehle"},
+  {id:27,w:"Ich mag das nicht",h:"Missfallen",c:"gefuehle"},
+  {id:28,w:"Ich",h:"Auf sich zeigen",c:"personen"},
+  {id:29,w:"Du",h:"Auf die andere Person",c:"personen"},
+  {id:30,w:"Wir",h:"Beide zusammen",c:"personen"},
+  {id:31,w:"Die Person dort",h:"Dritte Person zeigen",c:"personen"},
+  {id:32,w:"Mann",h:"Männliche Person",c:"personen"},
+  {id:33,w:"Frau",h:"Weibliche Person",c:"personen"},
+  {id:34,w:"Kind / Kinder",h:"Junge Person(en)",c:"personen"},
+  {id:35,w:"Freund*in",h:"Bekannte Person",c:"personen"},
+  {id:36,w:"Chef / Autorität",h:"Ranghöhere Person",c:"personen"},
+  {id:37,w:"Niemand / leer",h:"Keine Person",c:"personen"},
+  {id:38,w:"Hier",h:"Dieser Ort",c:"raum"},
+  {id:39,w:"Dort / da drüben",h:"Ein anderer Ort",c:"raum"},
+  {id:40,w:"Oben",h:"Nach oben zeigen",c:"raum"},
+  {id:41,w:"Unten",h:"Nach unten zeigen",c:"raum"},
+  {id:42,w:"Links",h:"Linke Richtung",c:"raum"},
+  {id:43,w:"Rechts",h:"Rechte Richtung",c:"raum"},
+  {id:44,w:"Nah / dicht dran",h:"Kurze Distanz",c:"raum"},
+  {id:45,w:"Weit / weit weg",h:"Große Distanz",c:"raum"},
+  {id:46,w:"Raus / draußen",h:"Nach draußen",c:"raum"},
+  {id:47,w:"Rein / drinnen",h:"Nach drinnen",c:"raum"},
+  {id:48,w:"Toilette / WC",h:"Ich muss aufs Klo",c:"raum"},
+  {id:49,w:"Zuhause",h:"Wohnung / Heim",c:"raum"},
+  {id:50,w:"Restaurant / Cafe",h:"Zum Essen gehen",c:"raum"},
+  {id:51,w:"Laden / Geschäft",h:"Einkaufen gehen",c:"raum"},
+  {id:52,w:"Auto / Fahrzeug",h:"Transport",c:"raum"},
+  {id:53,w:"Jetzt / sofort",h:"Aktueller Moment",c:"zeit"},
+  {id:54,w:"Später",h:"Nicht jetzt",c:"zeit"},
+  {id:55,w:"Bald",h:"In kurzer Zeit",c:"zeit"},
+  {id:56,w:"Vorhin / schon",h:"Vergangenes",c:"zeit"},
+  {id:57,w:"Lange",h:"Viel Zeit",c:"zeit"},
+  {id:58,w:"Kurz",h:"Wenig Zeit",c:"zeit"},
+  {id:59,w:"Heute",h:"Dieser Tag",c:"zeit"},
+  {id:60,w:"Morgen",h:"Nächster Tag",c:"zeit"},
+  {id:61,w:"Gestern",h:"Vorheriger Tag",c:"zeit"},
+  {id:62,w:"Fertig / Ende",h:"Abgeschlossen",c:"zeit"},
+  {id:63,w:"Noch nicht",h:"Nicht fertig",c:"zeit"},
+  {id:64,w:"Immer / oft",h:"Häufige Häufigkeit",c:"zeit"},
+  {id:65,w:"Nie / selten",h:"Seltene Häufigkeit",c:"zeit"},
+  {id:66,w:"Telefon / anrufen",h:"Jemand ruft an",c:"alltag"},
+  {id:67,w:"Nachricht / schreiben",h:"Text schicken",c:"alltag"},
+  {id:68,w:"Geld / zahlen",h:"Finanzielles",c:"alltag"},
+  {id:69,w:"Teuer / billiger",h:"Preis",c:"alltag"},
+  {id:70,w:"Schlafen",h:"Möchte schlafen",c:"alltag"},
+  {id:71,w:"Duschen / Bad",h:"Körperhygiene",c:"alltag"},
+  {id:72,w:"Einkaufen",h:"Besorgungen machen",c:"alltag"},
+  {id:73,w:"Arbeiten / Stress",h:"Berufliches",c:"alltag"},
+  {id:74,w:"Musik",h:"Musik hören / spielen",c:"alltag"},
+  {id:75,w:"Film / Serie",h:"Schauen / Streaming",c:"alltag"},
+  {id:76,w:"Spaziergang",h:"Draußen laufen",c:"alltag"},
+  {id:77,w:"Medikament / krank",h:"Gesundheit",c:"alltag"},
+  {id:78,w:"Laut / leiser stellen",h:"Lautstärke",c:"alltag"},
+  {id:79,w:"Foto machen",h:"Aufnahme",c:"alltag"},
+  {id:80,w:"Internet / suchen",h:"Online gehen",c:"alltag"},
+  {id:81,w:"Essen / Mahlzeit",h:"Allgemein Nahrung",c:"essen"},
+  {id:82,w:"Trinken",h:"Getränk nehmen",c:"essen"},
+  {id:83,w:"Wasser",h:"Wasser trinken",c:"essen"},
+  {id:84,w:"Kaffee",h:"Kaffee bestellen",c:"essen"},
+  {id:85,w:"Wein / Bier",h:"Alkohol",c:"essen"},
+  {id:86,w:"Süßes / Dessert",h:"Nachtisch",c:"essen"},
+  {id:87,w:"Scharf / salzig",h:"Geschmack",c:"essen"},
+  {id:88,w:"Lecker / gut",h:"Schmeckt mir",c:"essen"},
+  {id:89,w:"Nicht lecker",h:"Schmeckt mir nicht",c:"essen"},
+  {id:90,w:"Zu viel / satt",h:"Ich bin voll",c:"essen"},
+  {id:91,w:"Noch mehr",h:"Nachschlag",c:"essen"},
+  {id:92,w:"Rechnung",h:"Bezahlen wollen",c:"essen"},
+  {id:93,w:"Und / auch",h:"Verknüpfung",c:"grammatik"},
+  {id:94,w:"Oder",h:"Alternative",c:"grammatik"},
+  {id:95,w:"Aber / trotzdem",h:"Gegenüberstellung",c:"grammatik"},
+  {id:96,w:"Weil / deshalb",h:"Begründung",c:"grammatik"},
+  {id:97,w:"Wenn / falls",h:"Bedingung",c:"grammatik"},
+  {id:98,w:"Alles / komplett",h:"Gesamtheit",c:"grammatik"},
+  {id:99,w:"Nichts",h:"Null / leer",c:"grammatik"},
+  {id:100,w:"Viel / mehr",h:"Große Menge",c:"grammatik"},
+  {id:101,w:"Wenig / weniger",h:"Kleine Menge",c:"grammatik"},
+  {id:102,w:"Gleich / wie",h:"Vergleich",c:"grammatik"},
+  {id:103,w:"Verschieden / anders",h:"Unterschied",c:"grammatik"},
+  {id:104,w:"Wieder / nochmal",h:"Wiederholung",c:"grammatik"},
+  {id:105,w:"Zusammen",h:"Gemeinsam",c:"grammatik"},
+  {id:106,w:"Allein",h:"Ohne andere",c:"grammatik"},
+  {id:107,w:"Wirklich / ernst",h:"Betonung der Wahrheit",c:"grammatik"},
+  {id:108,w:"Was?",h:"Inhalt erfragen",c:"fragen"},
+  {id:109,w:"Wer?",h:"Person erfragen",c:"fragen"},
+  {id:110,w:"Wo?",h:"Ort erfragen",c:"fragen"},
+  {id:111,w:"Wann?",h:"Zeit erfragen",c:"fragen"},
+  {id:112,w:"Warum?",h:"Grund erfragen",c:"fragen"},
+  {id:113,w:"Wie?",h:"Art & Weise erfragen",c:"fragen"},
+  {id:114,w:"Wie viel?",h:"Menge erfragen",c:"fragen"},
+  {id:115,w:"Verstehst du?",h:"Verständnis prüfen",c:"fragen"},
+  {id:116,w:"Weißt du?",h:"Wissen prüfen",c:"fragen"},
+  {id:117,w:"Sicher?",h:"Bestätigung suchen",c:"fragen"},
+  {id:118,w:"Was denkst du?",h:"Meinung erfragen",c:"fragen"},
+  {id:119,w:"Sagst du mir später?",h:"Aufschub",c:"fragen"},
+  {id:120,w:"Geben",h:"Etwas überreichen",c:"bewegen"},
+  {id:121,w:"Nehmen / holen",h:"Etwas greifen",c:"bewegen"},
+  {id:122,w:"Zeigen / hinweisen",h:"Aufmerksam machen",c:"bewegen"},
+  {id:123,w:"Schauen / beobachten",h:"Mit Augen verfolgen",c:"bewegen"},
+  {id:124,w:"Zuhören",h:"Auf etwas hören",c:"bewegen"},
+  {id:125,w:"Sprechen / erzählen",h:"Reden mit jemandem",c:"bewegen"},
+  {id:126,w:"Denken / überlegen",h:"Nachdenken",c:"bewegen"},
+  {id:127,w:"Verstehen",h:"Kapiert / begriffen",c:"bewegen"},
+  {id:128,w:"Nicht verstehen",h:"Nicht kapiert",c:"bewegen"},
+  {id:129,w:"Vergessen",h:"Aus dem Gedächtnis",c:"bewegen"},
+  {id:130,w:"Beginnen / anfangen",h:"Start einer Aktion",c:"bewegen"},
+  {id:131,w:"Aufhören",h:"Ende einer Aktion",c:"bewegen"},
+  {id:132,w:"Helfen",h:"Unterstützung anbieten",c:"bewegen"},
+  {id:133,w:"Folgen / nachkommen",h:"Hinterher gehen",c:"bewegen"},
+  {id:134,w:"Passen / funktioniert",h:"Klappt gut",c:"bewegen"},
+  {id:135,w:"Kaputt / klappt nicht",h:"Defekt / Problem",c:"bewegen"},
+  {id:136,w:"Suchen / wo ist?",h:"Etwas finden wollen",c:"bewegen"},
+  {id:137,w:"Kaufen / wollen",h:"Etwas erwerben",c:"bewegen"}
+];
+
+let S={view:'home',prevView:'home',prevList:null,curCat:null,curWord:null,camFace:'user',custom:[],lists:[],trims:{},dark:false,mr:null,stream:null,chunks:[],recSec:0,recInt:null};
+
+function load(){
+  try{
+    S.custom=JSON.parse(localStorage.getItem('zc')||'[]');
+    S.lists=JSON.parse(localStorage.getItem('zl')||'[]');
+    S.trims=JSON.parse(localStorage.getItem('zt')||'{}');
+    S.dark=localStorage.getItem('zdark')==='1';
+    document.body.classList.toggle('dark',S.dark);
+  }catch(e){}
+}
+function saveC(){localStorage.setItem('zc',JSON.stringify(S.custom));}
+function saveL(){localStorage.setItem('zl',JSON.stringify(S.lists));}
+function saveT(){localStorage.setItem('zt',JSON.stringify(S.trims));}
+function vocab(){return[...BASE,...S.custom];}
+
+function toggleDark(){
+  S.dark=!S.dark;
+  localStorage.setItem('zdark',S.dark?'1':'0');
+  document.body.classList.toggle('dark',S.dark);
+  const b=document.getElementById('dark-btn');
+  if(b)b.textContent=S.dark?'☀️ Light Mode':'🌙 Dark Mode';
+}
+
+let db;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('ZDB3',1);r.onupgradeneeded=e=>e.target.result.createObjectStore('v');r.onsuccess=e=>{db=e.target.result;res();};r.onerror=rej;});}
+function dbs(k,v){return new Promise((res,rej)=>{const tx=db.transaction('v','readwrite');tx.objectStore('v').put(v,k);tx.oncomplete=res;tx.onerror=rej;});}
+function dbg(k){return new Promise(res=>{const r=db.transaction('v','readonly').objectStore('v').get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>res(null);});}
+function dbd(k){return new Promise(res=>{const tx=db.transaction('v','readwrite');tx.objectStore('v').delete(k);tx.oncomplete=res;});}
+function dbk(){return new Promise(res=>{const r=db.transaction('v','readonly').objectStore('v').getAllKeys();r.onsuccess=()=>res(r.result||[]);});}
+
+function go(v,data={}){
+  if(S.view==='record'&&v!=='record')stopCam(false);
+  S.prevView=S.view;S.view=v;
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('view-'+v);
+  if(el)el.classList.add('active');
+  const m={home:renderHome,category:()=>renderCat(data.cat),word:()=>renderWord(data.word),lists:renderLists,'list-detail':()=>renderLD(data.list),settings:()=>{const b=document.getElementById('dark-btn');if(b)b.textContent=S.dark?'☀️ Light Mode':'🌙 Dark Mode';},search:()=>{document.getElementById('search-in').value='';doSearch();},add:renderAdd};
+  if(m[v])m[v]();
+}
+function goBackWord(){
+  if(S.prevView==='list-detail')go('list-detail',{list:S.prevList});
+  else if(S.prevView==='search')go('search');
+  else go('category',{cat:S.curCat});
+}
+
+async function renderHome(){
+  const keys=(await dbk()).map(String);
+  const v=vocab();const tot=v.length;const done=keys.length;
+  document.getElementById('prog-fill').style.width=tot?Math.round(done/tot*100)+'%':'0%';
+  document.getElementById('prog-txt').textContent=done+' / '+tot+' aufgenommen';
+  const grid=document.getElementById('cat-grid');grid.innerHTML='';
+  for(const cat of CATS){
+    const words=v.filter(x=>x.c===cat.id);
+    const rec=words.filter(w=>keys.includes(String(w.id))).length;
+    const pct=words.length?Math.round(rec/words.length*100):0;
+    const btn=document.createElement('button');btn.className='cat-card';
+    btn.innerHTML=`<span class="cat-ico">${cat.emoji}</span><div class="cat-nm">${cat.name}</div><div class="cat-ct">${rec}/${words.length}</div><div class="cat-bar"><div class="cat-bar-fill" style="width:${pct}%"></div></div>`;
+    btn.onclick=()=>go('category',{cat});grid.appendChild(btn);
+  }
+}
+
+async function renderCat(cat){
+  S.curCat=cat;
+  document.getElementById('cat-h').textContent=cat.emoji+' '+cat.name;
+  const words=vocab().filter(v=>v.c===cat.id);
+  document.getElementById('cat-p').textContent=words.length+' Zeichen';
+  const keys=(await dbk()).map(String);
+  const list=document.getElementById('word-list');list.innerHTML='';
+  const card=document.createElement('div');
+  card.style.cssText='background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;';
+  words.forEach(word=>{
+    const has=keys.includes(String(word.id));
+    const row=document.createElement('div');row.className='wrow';
+    row.innerHTML=`<div class="wi"><div class="wn">${word.w}</div><div class="wh">${word.h}</div></div><div class="wbadge ${has?'has-vid':'no-vid'}">${has?'✅':'○'}</div>`;
+    row.onclick=()=>{S.prevView='category';go('word',{word});};
+    card.appendChild(row);
+  });
+  list.appendChild(card);
+}
+
+async function renderWord(word){
+  S.curWord=word;
+  document.getElementById('word-h').textContent=word.w;
+  document.getElementById('word-hint').textContent=word.h||'';
+  const cat=CATS.find(c=>c.id===word.c);
+  document.getElementById('word-sub').textContent=cat?cat.emoji+' '+cat.name:'';
+  updateStar();await loadVid();
+}
+
+async function loadVid(){
+  const blob=await dbg(String(S.curWord.id));
+  const vid=document.getElementById('word-vid');
+  const emp=document.getElementById('vid-empty');
+  const panel=document.getElementById('trim-panel');
+
+  if(blob){
+    if(vid._url)URL.revokeObjectURL(vid._url);
+    vid._url=URL.createObjectURL(blob);
+    vid.src=vid._url;
+    vid.style.display='block';
+    emp.style.display='none';
+
+    vid.onloadedmetadata=()=>{
+      setupTrimControls();
+      const t=getTrim();
+      vid.currentTime=t.s||0;
+    };
+
+    vid.ontimeupdate=()=>{
+      const t=getTrim();
+      if(t.e!==null && vid.currentTime>=t.e){
+        vid.pause();
+        vid.currentTime=t.s||0;
+      }
+    };
+  }else{
+    vid.src='';
+    vid.style.display='none';
+    emp.style.display='flex';
+    if(panel)panel.style.display='none';
+  }
+
+  const btns=document.getElementById('word-btns');
+  btns.innerHTML=blob
+    ?`<button class="btn btn-s" onclick="showTrim()">✂️ Trimmen</button><button class="btn btn-p" onclick="startRec()">🔄 Neu aufnehmen</button><button class="btn btn-d" onclick="delVid()">🗑️ Aufnahme löschen</button>`
+    :`<button class="btn btn-p" onclick="startRec()">📹 Jetzt aufnehmen</button>`;
+}
+
+function getTrim(){
+  const id=String(S.curWord.id);
+  return S.trims[id]||{s:0,e:null};
+}
+function fmtSec(v){return Number(v||0).toFixed(1)+'s';}
+function showTrim(){
+  const p=document.getElementById('trim-panel');
+  if(p)p.style.display=p.style.display==='block'?'none':'block';
+  setupTrimControls();
+}
+function setupTrimControls(){
+  const vid=document.getElementById('word-vid');
+  if(!vid.duration || !isFinite(vid.duration))return;
+  const s=document.getElementById('trim-s');
+  const e=document.getElementById('trim-e');
+  const dur=Math.max(0.1,vid.duration);
+  const t=getTrim();
+  s.max=dur;e.max=dur;
+  s.value=t.s||0;e.value=t.e===null?dur:t.e;
+  trimInputChanged();
+}
+function trimInputChanged(){
+  const s=document.getElementById('trim-s');
+  const e=document.getElementById('trim-e');
+  let sv=parseFloat(s.value);let ev=parseFloat(e.value);
+  if(sv>=ev)sv=Math.max(0,ev-0.2);
+  if(ev<=sv)ev=sv+0.2;
+  s.value=sv;e.value=ev;
+  document.getElementById('trim-s-lbl').textContent=fmtSec(sv);
+  document.getElementById('trim-e-lbl').textContent=fmtSec(ev);
+}
+function saveTrim(){
+  const id=String(S.curWord.id);
+  const s=parseFloat(document.getElementById('trim-s').value);
+  const e=parseFloat(document.getElementById('trim-e').value);
+  S.trims[id]={s,e};saveT();toast('Trim gespeichert ✂️');
+}
+function previewTrim(){
+  const vid=document.getElementById('word-vid');
+  const s=parseFloat(document.getElementById('trim-s').value);
+  vid.currentTime=s;vid.play();
+}
+function resetTrim(){
+  const id=String(S.curWord.id);
+  delete S.trims[id];saveT();setupTrimControls();toast('Trim zurückgesetzt');
+}
+
+async function delVid(){
+  if(!confirm('Aufnahme löschen?'))return;
+  await dbd(String(S.curWord.id));await loadVid();toast('Aufnahme gelöscht');
+}
+
+function updateStar(){
+  const yes=S.lists.some(l=>(l.ids||[]).map(String).includes(String(S.curWord.id)));
+  document.getElementById('star-btn').textContent=yes?'★':'☆';
+}
+function toggleStar(){
+  if(!S.lists.length){toast('Erstelle zuerst eine Liste!');go('lists');return;}
+  const names=S.lists.map((l,i)=>i+': '+l.name).join('\n');
+  const pick=prompt('In welche Liste?\n'+names+'\nNummer eingeben:');
+  if(pick===null)return;
+  const idx=parseInt(pick);if(isNaN(idx)||!S.lists[idx])return;
+  const l=S.lists[idx];if(!l.ids)l.ids=[];
+  const sid=String(S.curWord.id);
+  if(l.ids.map(String).includes(sid)){l.ids=l.ids.filter(x=>String(x)!==sid);toast('Aus Liste entfernt');}
+  else{l.ids.push(S.curWord.id);toast('Zu "'+l.name+'" hinzugefügt ★');}
+  saveL();updateStar();
+}
+
+function getMime(){for(const m of['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm']){try{if(MediaRecorder.isTypeSupported(m))return m;}catch(e){}}return'';}
+function startRec(){go('record');document.getElementById('rec-lbl').textContent=S.curWord?.w||'';document.getElementById('rec-btn').classList.remove('ing');document.getElementById('rec-timer').classList.remove('vis');initCam();}
+async function initCam(){
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:S.camFace,width:{ideal:720},height:{ideal:720}},audio:false});
+    S.stream=stream;const p=document.getElementById('cam-prev');
+    p.srcObject=stream;p.style.transform=S.camFace==='user'?'scaleX(-1)':'none';await p.play();
+  }catch(err){alert('Kamera nicht verfügbar.\n'+err.message);go('word',{word:S.curWord});}
+}
+async function flipCam(){S.camFace=S.camFace==='user'?'environment':'user';if(S.stream)S.stream.getTracks().forEach(t=>t.stop());await initCam();}
+function toggleRec(){if(!S.mr||S.mr.state==='inactive')beginRec();else endRec();}
+function beginRec(){
+  if(!S.stream)return;
+  const mime=getMime();
+  try{S.mr=new MediaRecorder(S.stream,mime?{mimeType:mime}:{});}catch(e){S.mr=new MediaRecorder(S.stream);}
+  S.chunks=[];S.mr.ondataavailable=e=>{if(e.data.size>0)S.chunks.push(e.data);};S.mr.onstop=onStop;
+  S.mr.start(100);document.getElementById('rec-btn').classList.add('ing');document.getElementById('rec-timer').classList.add('vis');
+  S.recSec=0;updT();S.recInt=setInterval(()=>{S.recSec++;updT();if(S.recSec>=10)endRec();},1000);
+}
+function updT(){const mm=String(Math.floor(S.recSec/60)).padStart(2,'0');const ss=String(S.recSec%60).padStart(2,'0');document.getElementById('rec-timer').textContent=mm+':'+ss;}
+function endRec(){clearInterval(S.recInt);if(S.mr&&S.mr.state!=='inactive')S.mr.stop();document.getElementById('rec-btn').classList.remove('ing');}
+async function onStop(){
+  const mime=getMime()||'video/mp4';const blob=new Blob(S.chunks,{type:mime});
+  await dbs(String(S.curWord.id),blob);stopCam(false);go('word',{word:S.curWord});toast('Aufnahme gespeichert ✅');
+}
+function stopCam(nav=true){
+  clearInterval(S.recInt);if(S.mr&&S.mr.state!=='inactive')S.mr.stop();
+  if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null;}
+  const p=document.getElementById('cam-prev');if(p){p.srcObject=null;p.src='';}
+  S.mr=null;S.chunks=[];if(nav)go('word',{word:S.curWord});
+}
+
+async function doSearch(){
+  const q=document.getElementById('search-in').value;
+  const res=document.getElementById('search-res');
+  if(!q.trim()){res.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">Wort eingeben</div></div>';return;}
+  const matches=vocab().filter(v=>v.w.toLowerCase().includes(q.toLowerCase())||v.h.toLowerCase().includes(q.toLowerCase()));
+  if(!matches.length){res.innerHTML='<div class="empty"><div class="empty-ico">🤷</div><div class="empty-t">Nichts gefunden</div></div>';return;}
+  const keys=(await dbk()).map(String);
+  const card=document.createElement('div');card.style.cssText='background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;';
+  matches.forEach(word=>{
+    const has=keys.includes(String(word.id));const row=document.createElement('div');row.className='wrow';
+    row.innerHTML=`<div class="wi"><div class="wn">${word.w}</div><div class="wh">${word.h}</div></div><div class="wbadge ${has?'has-vid':'no-vid'}">${has?'✅':'○'}</div>`;
+    row.onclick=()=>{S.prevView='search';go('word',{word});};card.appendChild(row);
+  });
+  res.innerHTML='';res.appendChild(card);
+}
+
+function renderLists(){
+  const box=document.getElementById('lists-box');
+  if(!S.lists.length){box.innerHTML='<div class="empty"><div class="empty-ico">📋</div><div class="empty-t">Noch keine Listen</div><div class="empty-s">z.B. "Restaurant", "Unterwegs"</div></div><button class="btn btn-p" style="margin-top:14px;" onclick="createList()">+ Erste Liste erstellen</button>';return;}
+  box.innerHTML='';
+  S.lists.forEach(list=>{
+    const c=document.createElement('div');c.className='list-card';
+    c.innerHTML=`<div style="font-size:26px;">${list.emoji||'📋'}</div><div style="flex:1;"><div style="font-size:15px;font-weight:600;">${list.name}</div><div style="font-size:12px;color:var(--text2);margin-top:2px;">${(list.ids||[]).length} Zeichen</div></div><span style="color:var(--text2);">›</span>`;
+    c.onclick=()=>{S.prevList=list;go('list-detail',{list});};box.appendChild(c);
+  });
+}
+function createList(){const name=prompt('Name der neuen Liste:');if(!name)return;const emojis=['📋','🌟','🏪','🚗','🍽️','💬','🏠','🎯','🌍','💡'];S.lists.push({id:Date.now(),name,emoji:emojis[S.lists.length%emojis.length],ids:[]});saveL();renderLists();}
+function renderLD(list){
+  const fresh=S.lists.find(l=>l.id===list.id)||list;
+  document.getElementById('ld-h').textContent=(fresh.emoji||'📋')+' '+fresh.name;
+  const words=(fresh.ids||[]).map(id=>vocab().find(v=>String(v.id)===String(id))).filter(Boolean);
+  document.getElementById('ld-p').textContent=words.length+' Zeichen';
+  const box=document.getElementById('ld-words');
+  if(!words.length){box.innerHTML='<div class="empty"><div class="empty-ico">➕</div><div class="empty-t">Noch keine Zeichen</div><div class="empty-s">Öffne ein Wort und tippe auf ☆</div></div>';return;}
+  const card=document.createElement('div');card.style.cssText='background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;';
+  words.forEach(word=>{
+    const row=document.createElement('div');row.className='wrow';
+    row.innerHTML=`<div class="wi"><div class="wn">${word.w}</div><div class="wh">${word.h}</div></div><span style="color:var(--text2);">›</span>`;
+    row.onclick=()=>{S.prevView='list-detail';S.prevList=fresh;go('word',{word});};card.appendChild(row);
+  });
+  box.innerHTML='';box.appendChild(card);
+}
+function delList(){if(!confirm('Liste löschen?'))return;S.lists=S.lists.filter(l=>l.id!==S.prevList.id);saveL();go('lists');}
+
+function renderAdd(){document.getElementById('add-w').value='';document.getElementById('add-h').value='';document.getElementById('add-c').innerHTML=CATS.map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');}
+function saveNewWord(){const w=document.getElementById('add-w').value.trim();if(!w){toast('Bitte ein Wort eingeben');return;}const h=document.getElementById('add-h').value.trim();const c=document.getElementById('add-c').value;S.custom.push({id:'c'+Date.now(),w,h:h||'Eigenes Zeichen',c});saveC();toast('"'+w+'" hinzugefügt ✅');go('home');}
+
+async function exportVids(){
+  const keys=await dbk();
+  if(!keys.length&&!S.custom.length&&!S.lists.length){toast('Noch keine Daten zum Exportieren');return;}
+  toast('Exportiere…');
+  const data={vids:{},custom:S.custom,lists:S.lists,trims:S.trims,dark:S.dark};
+  for(const k of keys){const blob=await dbg(k);if(blob){const b64=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(blob);});data.vids[k]={b64,type:blob.type};}}
+  const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='zeichen_daten.zeichen';a.click();URL.revokeObjectURL(url);
+  toast('Exportiert 📤');
+}
+async function handleImport(ev){
+  const file=ev.target.files[0];if(!file)return;toast('Importiere…');
+  try{const data=JSON.parse(await file.text());let ct=0;
+    for(const[k,val]of Object.entries(data.vids||{})){const bs=atob(val.b64);const arr=new Uint8Array(bs.length);for(let i=0;i<bs.length;i++)arr[i]=bs.charCodeAt(i);await dbs(k,new Blob([arr],{type:val.type}));ct++;}
+    if(Array.isArray(data.custom))S.custom=data.custom;
+    if(Array.isArray(data.lists))S.lists=data.lists;
+    if(data.trims)S.trims=data.trims;
+    if(typeof data.dark==='boolean'){S.dark=data.dark;localStorage.setItem('zdark',S.dark?'1':'0');document.body.classList.toggle('dark',S.dark);}
+    saveC();saveL();saveT();
+    toast(ct+' Videos + Daten importiert ✅');renderHome();
+  }catch(e){toast('Fehler beim Import');}
+  ev.target.value='';
+}
+async function resetVids(){if(!confirm('Alle Videos löschen?'))return;const keys=await dbk();const tx=db.transaction('v','readwrite');const store=tx.objectStore('v');keys.forEach(k=>store.delete(k));S.trims={};saveT();toast('Alle Videos gelöscht');renderHome();}
+
+let toastT;
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2500);}
+
+async function init(){load();await openDB();renderHome();}
+init();
+</script>
+</body>
+</html>
