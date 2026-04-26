@@ -119,7 +119,10 @@ body.dark .wrow:active{background:#242426;}
 
 <div id="view-home" class="view active">
   <div class="hdr">
-    <h1>Zeichen ✋</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <h1>Zeichen ✋</h1>
+      <button class="btn btn-s" style="width:auto;padding:8px 12px;font-size:13px;" onclick="createCategory()">+ Kategorie</button>
+    </div>
     <div class="prog-wrap">
       <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
       <div class="prog-txt" id="prog-txt">0 / 150</div>
@@ -138,7 +141,8 @@ body.dark .wrow:active{background:#242426;}
   <div class="hdr">
     <div class="hdr-row">
       <button class="back" onclick="go('home')">←</button>
-      <div><h1 id="cat-h"></h1><p id="cat-p"></p></div>
+      <div style="flex:1;"><h1 id="cat-h"></h1><p id="cat-p"></p></div>
+      <button class="btn btn-s" style="width:auto;padding:8px 12px;font-size:13px;" onclick="go('add',{cat:S.curCat})">+ Zeichen</button>
     </div>
   </div>
   <div class="scroll"><div id="word-list" style="margin:0 14px;"></div></div>
@@ -310,17 +314,25 @@ function cloudReady(){
   return !!supabaseClient;
 }
 
-function cloudPath(id){
-  return String(id) + ".webm";
+function fileExtFromMime(mime){
+  return String(mime||'').includes('mp4') ? 'mp4' : 'webm';
 }
 
-function cloudUrl(id){
+function cloudPath(id,mime){
+  return String(id) + "." + fileExtFromMime(mime);
+}
+
+function possibleCloudPaths(id){
+  return [String(id)+'.mp4', String(id)+'.webm'];
+}
+
+function cloudUrlFromPath(path){
   if(!cloudReady())return null;
-  return supabaseClient.storage.from(BUCKET).getPublicUrl(cloudPath(id)).data.publicUrl;
+  return supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-async function cloudExists(id){
-  const url=cloudUrl(id);
+async function cloudExistsPath(path){
+  const url=cloudUrlFromPath(path);
   if(!url)return false;
   try{
     const controller=new AbortController();
@@ -331,6 +343,32 @@ async function cloudExists(id){
   }catch(e){
     return false;
   }
+}
+
+async function findCloudVideoPath(id){
+  for(const path of possibleCloudPaths(id)){
+    if(await cloudExistsPath(path))return path;
+  }
+  return null;
+}
+
+async function cloudRecordedIds(){
+  if(!cloudReady())return [];
+  try{
+    const { data, error } = await supabaseClient.storage.from(BUCKET).list('', { limit:1000 });
+    if(error || !data)return [];
+    return data
+      .filter(f=>/\.(webm|mp4)$/i.test(f.name))
+      .map(f=>f.name.replace(/\.(webm|mp4)$/i,''));
+  }catch(e){
+    return [];
+  }
+}
+
+async function recordedIds(){
+  const local=(await dbk()).map(String);
+  const cloud=await cloudRecordedIds();
+  return [...new Set([...local,...cloud])];
 }
 
 const CATS=[
@@ -486,11 +524,12 @@ const BASE=[
   {id:137,w:"Kaufen / wollen",h:"Etwas erwerben",c:"bewegen"}
 ];
 
-let S={view:'home',prevView:'home',prevList:null,curCat:null,curWord:null,camFace:'user',custom:[],lists:[],trims:{},dark:false,mr:null,stream:null,chunks:[],recSec:0,recInt:null};
+let S={view:'home',prevView:'home',prevList:null,curCat:null,curWord:null,camFace:'user',custom:[],customCats:[],lists:[],trims:{},dark:false,mr:null,stream:null,chunks:[],recSec:0,recInt:null};
 
 function load(){
   try{
     S.custom=JSON.parse(localStorage.getItem('zc')||'[]');
+    S.customCats=JSON.parse(localStorage.getItem('zcat')||'[]');
     S.lists=JSON.parse(localStorage.getItem('zl')||'[]');
     S.trims=JSON.parse(localStorage.getItem('zt')||'{}');
     S.dark=localStorage.getItem('zdark')==='1';
@@ -498,6 +537,8 @@ function load(){
   }catch(e){}
 }
 function saveC(){localStorage.setItem('zc',JSON.stringify(S.custom));}
+function saveCat(){localStorage.setItem('zcat',JSON.stringify(S.customCats));}
+function cats(){return[...CATS,...S.customCats];}
 function saveL(){localStorage.setItem('zl',JSON.stringify(S.lists));}
 function saveT(){localStorage.setItem('zt',JSON.stringify(S.trims));}
 function vocab(){return[...BASE,...S.custom];}
@@ -533,12 +574,12 @@ function goBackWord(){
 }
 
 async function renderHome(){
-  const keys=(await dbk()).map(String);
+  const keys=await recordedIds();
   const v=vocab();const tot=v.length;const done=keys.length;
   document.getElementById('prog-fill').style.width=tot?Math.round(done/tot*100)+'%':'0%';
   document.getElementById('prog-txt').textContent=done+' / '+tot+' aufgenommen';
   const grid=document.getElementById('cat-grid');grid.innerHTML='';
-  for(const cat of CATS){
+  for(const cat of cats()){
     const words=v.filter(x=>x.c===cat.id);
     const rec=words.filter(w=>keys.includes(String(w.id))).length;
     const pct=words.length?Math.round(rec/words.length*100):0;
@@ -553,7 +594,7 @@ async function renderCat(cat){
   document.getElementById('cat-h').textContent=cat.emoji+' '+cat.name;
   const words=vocab().filter(v=>v.c===cat.id);
   document.getElementById('cat-p').textContent=words.length+' Zeichen';
-  const keys=(await dbk()).map(String);
+  const keys=await recordedIds();
   const list=document.getElementById('word-list');list.innerHTML='';
   const card=document.createElement('div');
   card.style.cssText='background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;';
@@ -571,7 +612,7 @@ async function renderWord(word){
   S.curWord=word;
   document.getElementById('word-h').textContent=word.w;
   document.getElementById('word-hint').textContent=word.h||'';
-  const cat=CATS.find(c=>c.id===word.c);
+  const cat=cats().find(c=>c.id===word.c);
   document.getElementById('word-sub').textContent=cat?cat.emoji+' '+cat.name:'';
   updateStar();await loadVid();
 }
@@ -584,11 +625,10 @@ async function loadVid(){
   let src=null;
   let hasVideo=false;
 
-  const onlineUrl=cloudUrl(S.curWord.id);
-  const onlineOk=await cloudExists(S.curWord.id);
+  const onlinePath=await findCloudVideoPath(S.curWord.id);
 
-  if(onlineOk){
-    src=onlineUrl;
+  if(onlinePath){
+    src=cloudUrlFromPath(onlinePath) + '?v=' + Date.now();
     hasVideo=true;
   }else{
     const blob=await dbg(String(S.curWord.id));
@@ -686,7 +726,7 @@ async function delVid(){
   if(cloudReady()){
     const result = await supabaseClient.storage
       .from(BUCKET)
-      .remove([cloudPath(S.curWord.id)]);
+      .remove(possibleCloudPaths(S.curWord.id));
     error=result.error;
   }
 
@@ -737,7 +777,7 @@ function endRec(){clearInterval(S.recInt);if(S.mr&&S.mr.state!=='inactive')S.mr.
 async function onStop(){
   const mime=getMime()||'video/webm';
   const blob=new Blob(S.chunks,{type:mime});
-  const path=cloudPath(S.curWord.id);
+  const path=cloudPath(S.curWord.id,mime);
 
   await dbs(String(S.curWord.id),blob);
 
@@ -778,7 +818,7 @@ async function doSearch(){
   if(!q.trim()){res.innerHTML='<div class="empty"><div class="empty-ico">🔍</div><div class="empty-t">Wort eingeben</div></div>';return;}
   const matches=vocab().filter(v=>v.w.toLowerCase().includes(q.toLowerCase())||v.h.toLowerCase().includes(q.toLowerCase()));
   if(!matches.length){res.innerHTML='<div class="empty"><div class="empty-ico">🤷</div><div class="empty-t">Nichts gefunden</div></div>';return;}
-  const keys=(await dbk()).map(String);
+  const keys=await recordedIds();
   const card=document.createElement('div');card.style.cssText='background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;';
   matches.forEach(word=>{
     const has=keys.includes(String(word.id));const row=document.createElement('div');row.className='wrow';
@@ -816,14 +856,26 @@ function renderLD(list){
 }
 function delList(){if(!confirm('Liste löschen?'))return;S.lists=S.lists.filter(l=>l.id!==S.prevList.id);saveL();go('lists');}
 
-function renderAdd(){document.getElementById('add-w').value='';document.getElementById('add-h').value='';document.getElementById('add-c').innerHTML=CATS.map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');}
+function createCategory(){
+  const name=prompt('Name der neuen Kategorie:');
+  if(!name)return;
+  const emoji=prompt('Emoji für die Kategorie:', '✨') || '✨';
+  const id='cat'+Date.now();
+  S.customCats.push({id,name,emoji});
+  saveCat();
+  toast('Kategorie hinzugefügt ✅');
+  renderHome();
+}
+
+function renderAdd(){document.getElementById('add-w').value='';document.getElementById('add-h').value='';document.getElementById('add-c').innerHTML=cats().map(c=>`<option value="${c.id}">${c.emoji} ${c.name}</option>`).join('');
+  if(S.curCat)document.getElementById('add-c').value=S.curCat.id;}
 function saveNewWord(){const w=document.getElementById('add-w').value.trim();if(!w){toast('Bitte ein Wort eingeben');return;}const h=document.getElementById('add-h').value.trim();const c=document.getElementById('add-c').value;S.custom.push({id:'c'+Date.now(),w,h:h||'Eigenes Zeichen',c});saveC();toast('"'+w+'" hinzugefügt ✅');go('home');}
 
 async function exportVids(){
   const keys=await dbk();
   if(!keys.length&&!S.custom.length&&!S.lists.length){toast('Noch keine Daten zum Exportieren');return;}
   toast('Exportiere…');
-  const data={vids:{},custom:S.custom,lists:S.lists,trims:S.trims,dark:S.dark};
+  const data={vids:{},custom:S.custom,customCats:S.customCats,lists:S.lists,trims:S.trims,dark:S.dark};
   for(const k of keys){const blob=await dbg(k);if(blob){const b64=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.readAsDataURL(blob);});data.vids[k]={b64,type:blob.type};}}
   const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='zeichen_daten.zeichen';a.click();URL.revokeObjectURL(url);
@@ -834,10 +886,11 @@ async function handleImport(ev){
   try{const data=JSON.parse(await file.text());let ct=0;
     for(const[k,val]of Object.entries(data.vids||{})){const bs=atob(val.b64);const arr=new Uint8Array(bs.length);for(let i=0;i<bs.length;i++)arr[i]=bs.charCodeAt(i);await dbs(k,new Blob([arr],{type:val.type}));ct++;}
     if(Array.isArray(data.custom))S.custom=data.custom;
+    if(Array.isArray(data.customCats))S.customCats=data.customCats;
     if(Array.isArray(data.lists))S.lists=data.lists;
     if(data.trims)S.trims=data.trims;
     if(typeof data.dark==='boolean'){S.dark=data.dark;localStorage.setItem('zdark',S.dark?'1':'0');document.body.classList.toggle('dark',S.dark);}
-    saveC();saveL();saveT();
+    saveC();saveCat();saveL();saveT();
     toast(ct+' Videos + Daten importiert ✅');renderHome();
   }catch(e){toast('Fehler beim Import');}
   ev.target.value='';
