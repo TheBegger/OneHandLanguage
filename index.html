@@ -622,48 +622,53 @@ async function loadVid(){
   const emp=document.getElementById('vid-empty');
   const panel=document.getElementById('trim-panel');
 
-  let src=null;
   let hasVideo=false;
 
-  const onlinePath=await findCloudVideoPath(S.curWord.id);
+  // try cloud directly (no HEAD check, iOS fix)
+  const paths=[String(S.curWord.id)+'.mp4', String(S.curWord.id)+'.webm'];
 
-  if(onlinePath){
-    src=cloudUrlFromPath(onlinePath) + '?v=' + Date.now();
-    hasVideo=true;
-  }else{
-    const blob=await dbg(String(S.curWord.id));
-    if(blob){
-      if(vid._url)URL.revokeObjectURL(vid._url);
-      vid._url=URL.createObjectURL(blob);
-      src=vid._url;
-      hasVideo=true;
+  let idx=0;
+
+  function tryNext(){
+    if(idx>=paths.length){
+      fallbackLocal();
+      return;
     }
-  }
-
-  if(hasVideo){
-    vid.src=src;
-    vid.style.display='block';
-    emp.style.display='none';
-
-    vid.onloadedmetadata=()=>{
+    const url=cloudUrlFromPath(paths[idx]) + '?v=' + Date.now();
+    vid.src=url;
+    vid.load();
+    vid.onerror=()=>{
+      idx++;
+      tryNext();
+    };
+    vid.onloadeddata=()=>{
+      hasVideo=true;
+      vid.style.display='block';
+      emp.style.display='none';
       setupTrimControls();
       const t=getTrim();
       vid.currentTime=t.s||0;
     };
-
-    vid.ontimeupdate=()=>{
-      const t=getTrim();
-      if(t.e!==null && vid.currentTime>=t.e){
-        vid.pause();
-        vid.currentTime=t.s||0;
-      }
-    };
-  }else{
-    vid.src='';
-    vid.style.display='none';
-    emp.style.display='flex';
-    if(panel)panel.style.display='none';
   }
+
+  async function fallbackLocal(){
+    const blob=await dbg(String(S.curWord.id));
+    if(blob){
+      if(vid._url)URL.revokeObjectURL(vid._url);
+      vid._url=URL.createObjectURL(blob);
+      vid.src=vid._url;
+      vid.style.display='block';
+      emp.style.display='none';
+      hasVideo=true;
+    }else{
+      vid.src='';
+      vid.style.display='none';
+      emp.style.display='flex';
+      if(panel)panel.style.display='none';
+    }
+  }
+
+  tryNext();
 
   const btns=document.getElementById('word-btns');
   btns.innerHTML=hasVideo
