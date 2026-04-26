@@ -532,7 +532,7 @@ function load(){
     S.customCats=JSON.parse(localStorage.getItem('zcat')||'[]');
     S.lists=JSON.parse(localStorage.getItem('zl')||'[]');
     S.trims=JSON.parse(localStorage.getItem('zt')||'{}');
-    S.dark=localStorage.getItem('zdark')==='1';
+    S.dark=localStorage.getItem('zdark')!==null ? localStorage.getItem('zdark')==='1' : true;
     document.body.classList.toggle('dark',S.dark);
   }catch(e){}
 }
