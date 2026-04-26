@@ -289,7 +289,33 @@ body.dark .wrow:active{background:#242426;}
 
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
+const supabase = window.supabase.createClient(
+  "https://yiaugqyrqaneugnkigfp.supabase.co",
+  "sb_publishable_HsB3VDl9T4GbA0IKEeVgPw_PPw4CQra"
+);
+
+const BUCKET = "Videos";
+
+function cloudPath(id){
+  return String(id) + ".webm";
+}
+
+function cloudUrl(id){
+  return supabase.storage.from(BUCKET).getPublicUrl(cloudPath(id)).data.publicUrl;
+}
+
+async function cloudExists(id){
+  try{
+    const res = await fetch(cloudUrl(id), { method:"HEAD", cache:"no-store" });
+    return res.ok;
+  }catch(e){
+    return false;
+  }
+}
+
 const CATS=[
   {id:"social",name:"Soziales",emoji:"👋"},
   {id:"gefuehle",name:"Gefühle",emoji:"😊"},
@@ -534,15 +560,31 @@ async function renderWord(word){
 }
 
 async function loadVid(){
-  const blob=await dbg(String(S.curWord.id));
   const vid=document.getElementById('word-vid');
   const emp=document.getElementById('vid-empty');
   const panel=document.getElementById('trim-panel');
 
-  if(blob){
-    if(vid._url)URL.revokeObjectURL(vid._url);
-    vid._url=URL.createObjectURL(blob);
-    vid.src=vid._url;
+  let src=null;
+  let hasVideo=false;
+
+  const onlineUrl=cloudUrl(S.curWord.id);
+  const onlineOk=await cloudExists(S.curWord.id);
+
+  if(onlineOk){
+    src=onlineUrl;
+    hasVideo=true;
+  }else{
+    const blob=await dbg(String(S.curWord.id));
+    if(blob){
+      if(vid._url)URL.revokeObjectURL(vid._url);
+      vid._url=URL.createObjectURL(blob);
+      src=vid._url;
+      hasVideo=true;
+    }
+  }
+
+  if(hasVideo){
+    vid.src=src;
     vid.style.display='block';
     emp.style.display='none';
 
@@ -567,7 +609,7 @@ async function loadVid(){
   }
 
   const btns=document.getElementById('word-btns');
-  btns.innerHTML=blob
+  btns.innerHTML=hasVideo
     ?`<button class="btn btn-s" onclick="showTrim()">✂️ Trimmen</button><button class="btn btn-p" onclick="startRec()">🔄 Neu aufnehmen</button><button class="btn btn-d" onclick="delVid()">🗑️ Aufnahme löschen</button>`
     :`<button class="btn btn-p" onclick="startRec()">📹 Jetzt aufnehmen</button>`;
 }
@@ -621,7 +663,16 @@ function resetTrim(){
 
 async function delVid(){
   if(!confirm('Aufnahme löschen?'))return;
-  await dbd(String(S.curWord.id));await loadVid();toast('Aufnahme gelöscht');
+  await dbd(String(S.curWord.id));
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .remove([cloudPath(S.curWord.id)]);
+
+  if(error)console.warn(error);
+
+  await loadVid();
+  toast('Aufnahme gelöscht');
 }
 
 function updateStar(){
@@ -663,8 +714,29 @@ function beginRec(){
 function updT(){const mm=String(Math.floor(S.recSec/60)).padStart(2,'0');const ss=String(S.recSec%60).padStart(2,'0');document.getElementById('rec-timer').textContent=mm+':'+ss;}
 function endRec(){clearInterval(S.recInt);if(S.mr&&S.mr.state!=='inactive')S.mr.stop();document.getElementById('rec-btn').classList.remove('ing');}
 async function onStop(){
-  const mime=getMime()||'video/mp4';const blob=new Blob(S.chunks,{type:mime});
-  await dbs(String(S.curWord.id),blob);stopCam(false);go('word',{word:S.curWord});toast('Aufnahme gespeichert ✅');
+  const mime=getMime()||'video/webm';
+  const blob=new Blob(S.chunks,{type:mime});
+  const path=cloudPath(S.curWord.id);
+
+  await dbs(String(S.curWord.id),blob);
+
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, blob, {
+      upsert:true,
+      contentType:mime
+    });
+
+  stopCam(false);
+  go('word',{word:S.curWord});
+
+  if(error){
+    console.error(error);
+    toast('Lokal gespeichert · Cloud-Upload fehlgeschlagen ❌');
+    return;
+  }
+
+  toast('Online gespeichert ☁️');
 }
 function stopCam(nav=true){
   clearInterval(S.recInt);if(S.mr&&S.mr.state!=='inactive')S.mr.stop();
