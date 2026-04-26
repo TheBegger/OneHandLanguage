@@ -775,11 +775,14 @@ function beginRec(){
 function updT(){const mm=String(Math.floor(S.recSec/60)).padStart(2,'0');const ss=String(S.recSec%60).padStart(2,'0');document.getElementById('rec-timer').textContent=mm+':'+ss;}
 function endRec(){clearInterval(S.recInt);if(S.mr&&S.mr.state!=='inactive')S.mr.stop();document.getElementById('rec-btn').classList.remove('ing');}
 async function onStop(){
-  const mime=getMime()||'video/webm';
-  const blob=new Blob(S.chunks,{type:mime});
-  const path=cloudPath(S.curWord.id,mime);
+  // Use actual recorded mime from device (fixes iPhone playback)
+  const blob = new Blob(S.chunks);
+  const mime = blob.type || '';
+  const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+  const path = String(S.curWord.id) + '.' + ext;
 
-  await dbs(String(S.curWord.id),blob);
+  // save local fallback
+  await dbs(String(S.curWord.id), blob);
 
   let error=null;
   if(cloudReady()){
@@ -787,7 +790,7 @@ async function onStop(){
       .from(BUCKET)
       .upload(path, blob, {
         upsert:true,
-        contentType:mime
+        contentType: mime || undefined
       });
     error=result.error;
   }else{
